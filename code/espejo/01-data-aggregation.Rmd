@@ -5,26 +5,102 @@ date: "3/30/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+I just drove myself into a deep dark pit of data terror, but I was able to find one archive from Kaggle using an internet time machine that gave me an old download link that somehow still worked. 159490 businesses intersect between the 2017 data I found and the 2019 data…
+
+## Libraries
+```{r, message=FALSE, warning=FALSE}
+library(jsonlite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(readr)
+library(ggplot2)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## 2019 Data
+I downloaded this straight off of the Yelp Challenge.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, message=FALSE, warning=FALSE}
+yelp_2019 <- "../../../data/yelp-2019/business.json"
+yelp_2019 <- stream_in(file(yelp_2019))
+yelp_2019 <- flatten(yelp_2019)
+yelp_2019 <- as_tibble(yelp_2019)
 ```
 
-## Including Plots
+## 2017 Data
+I used the wayback machine to get me this download link.
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, message=FALSE, warning=FALSE}
+wayback <- "../../../data/yelp-2017/yelp_business.csv"
+wayback <- read_csv(wayback)
+head(wayback)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Combining the datasets
+I want to get choose to use businesses that are in both the datasets only.
+
+```{r}
+intersecting_businesses <- intersect(wayback$business_id, yelp_2019$business_id)
+length(intersecting_businesses)
+```
+
+Sanity checks... 
+
+```{r}
+wayback_subset   <- wayback %>% filter(business_id %in% intersecting_businesses)
+yelp_2019_subset <- yelp_2019 %>% filter(business_id %in% intersecting_businesses)
+c(nrow(wayback_subset), nrow(yelp_2019_subset))
+```
+
+I'm going to just collect the 0's and 1's.
+
+```{r}
+yelp_2018_subberset <- yelp_2019_subset %>% select(business_id, is_open) %>% rename(open_2019=is_open)
+head(yelp_2018_subberset)
+```
+
+```{r}
+wayback_subset <- wayback_subset %>% rename(open_2017=is_open)
+causal_set <- merge(wayback_subset, yelp_2018_subberset, by="business_id")
+head(causal_set)
+```
+
+The businesses we look at should have been open in 2017.
+
+```{r}
+causal_set <- causal_set[which(causal_set$open_2017==1),]
+dim(causal_set)
+```
+
+According to this, 6,267 closed in two years. The other 127,561 carried on.
+
+```{r}
+table(causal_set$open_2019)
+```
+
+```{r, eval=FALSE}
+causal_set %>% filter(open_2019==0)
+```
+
+```{r}
+causal_set_cities <- data.frame(sort(table(causal_set$city), decreasing=TRUE))
+names(causal_set_cities) <- c("city", "frequency")
+ggplot(head(causal_set_cities, 15), aes(x=city, y=frequency)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Cities in the dataset")
+```
+
+
+```{r}
+closed_businesses <- data.frame(sort(table(causal_set %>% filter(open_2019==0) %>% pull(city)), decreasing=TRUE))
+names(closed_businesses) <- c("locations", "frequency")
+ggplot(head(closed_businesses, 10), aes(x=locations, y=frequency)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Areas with Closed Businesses")
+```
+
+
+```{r}
+open_businesses <- data.frame(sort(table(causal_set %>% filter(open_2019==1) %>% pull(city)), decreasing=TRUE))
+names(open_businesses) <- c("locations", "frequency")
+ggplot(head(open_businesses, 10), aes(x=locations, y=frequency)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Areas with Open Businesses")
+```
