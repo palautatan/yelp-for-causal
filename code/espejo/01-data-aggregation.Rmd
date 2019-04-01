@@ -2,7 +2,7 @@
 title: "Data Aggregation"
 author: "Edie Espejo"
 date: "3/30/2019"
-output: html_document
+output: pdf_document
 ---
 
 I just drove myself into a deep dark pit of data terror, but I was able to find one archive from Kaggle using an internet time machine that gave me an old download link that somehow still worked. 159490 businesses intersect between the 2017 data I found and the 2019 data…

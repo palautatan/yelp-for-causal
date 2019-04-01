@@ -1,0 +1,78 @@
+---
+title: "Las Vegas"
+author: "Edie Espejo"
+date: "3/31/2019"
+output: html_document
+---
+
+Let's check out businesses in SIN CITY!
+
+```{r}
+causal_lv <- causal_set %>% filter(city=="Las Vegas")
+causal_lv <- causal_lv %>% select(-city, -state)
+```
+
+
+I am removing those with no address.
+```{r}
+no_addy <- which(sapply(causal_lv %>% select(address), nchar)<10)
+# length(no_addy)  # 1293
+causal_lv <- causal_lv[-no_addy,]
+# nrow(causal_lv)   # 20057
+```
+
+## Get zip codes
+```{r}
+library(readr)
+home_rental_median <- read_csv("../../../data/zillow/Zip_MedianRentalPrice_AllHomes.csv")
+```
+
+I am merging on `2017-08` because our data is from August 22, 2017.
+
+```{r}
+names(home_rental_median)[which(names(home_rental_median)=="2017-08")] <- "august_2017_median"
+zillow <- home_rental_median %>% select(RegionName, august_2017_median)
+zillow <- zillow %>% rename(postal_code=RegionName)
+complete_df <- inner_join(causal_lv, zillow, by="postal_code") %>% filter(!is.na(neighborhood))
+```
+
+```{r, eval=FALSE}
+write.csv(x=complete_df, file="../../data/las-vegas-yelp.csv")
+```
+
+```{r}
+set.seed(252)
+subset_1 <- complete_df[runif(1500, 1, nrow(complete_df)),]
+write.csv(x=subset_1, file="../../data/subset-1.csv")
+```
+
+
+```{r}
+set.seed(4495)
+subset_2 <- complete_df[runif(1500, 1, nrow(complete_df)),]
+write.csv(x=subset_2, file="../../data/subset-2.csv")
+```
+
+
+## What businesses are we looking at?
+```{r}
+lv_business_types <- data.frame(sort(table(unlist(strsplit(x=causal_lv$categories, split=";"))), decreasing=TRUE))
+ggplot(head(lv_business_types, 20), aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Las Vegas Business Types")
+```
+
+## Which neighborhoods?
+
+```{r}
+neighborhoods <- data.frame(sort(table(causal_lv$neighborhood), decreasing=TRUE))
+ggplot(head(neighborhoods, 20), aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Las Vegas Neighborhoods")
+```
+
+## How many percent of businesses closed?
+4% closed. Isn't that a small amount? Interesting...
+```{r}
+causal_lv %>% group_by(neighborhood) %>% summarize(proportion_open=mean(open_2019))
+```
+
+```{r}
+ggplot(causal_lv, aes(x=open_2019)) + geom_bar()
+```
