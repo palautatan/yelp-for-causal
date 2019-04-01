@@ -93,3 +93,16 @@ complete_df_sum
 ```{r}
 ggplot(complete_df_sum, aes(x=neighborhood, y=average_review)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Las Vegas Neighborhoods")
 ```
+
+
+```{r}
+ggplot(complete_df, aes(x=review_count, y=stars)) + geom_point()
+```
+
+```{r}
+ggplot(complete_df, aes(y=stars)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots business ratings that were closed/open in 2019")
+```
+
+```{r}
+ggplot(complete_df, aes(y=review_count)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots business reviews that were closed/open in 2019")
+```
