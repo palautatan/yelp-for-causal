@@ -65,6 +65,7 @@ head(yelp_2018_subberset)
 ```{r}
 wayback_subset <- wayback_subset %>% rename(open_2017=is_open)
 causal_set <- merge(wayback_subset, yelp_2018_subberset, by="business_id")
+# write.csv(causal_set, file="../../../data/causal_set.csv")
 head(causal_set)
 ```
 

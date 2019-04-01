@@ -5,10 +5,23 @@ date: "3/31/2019"
 output: html_document
 ---
 
+## Libraries
+```{r, message=FALSE, warning=FALSE}
+library(jsonlite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(readr)
+library(ggplot2)
+```
+
+## Cleaning up the dataset
 Let's check out businesses in SIN CITY!
 
-```{r}
-causal_lv <- causal_set %>% filter(city=="Las Vegas")
+```{r, warning=FALSE, message=FALSE}
+causal_set <- read_csv("../../../data/causal_set.csv")[,-1]
+causal_lv <- causal_set %>% filter(city=="Las Vegas") %>% filter(state=="NV")
 causal_lv <- causal_lv %>% select(-city, -state)
 ```
 
@@ -23,7 +36,6 @@ causal_lv <- causal_lv[-no_addy,]
 
 ## Get zip codes
 ```{r}
-library(readr)
 home_rental_median <- read_csv("../../../data/zillow/Zip_MedianRentalPrice_AllHomes.csv")
 ```
 
@@ -33,10 +45,11 @@ I am merging on `2017-08` because our data is from August 22, 2017.
 names(home_rental_median)[which(names(home_rental_median)=="2017-08")] <- "august_2017_median"
 zillow <- home_rental_median %>% select(RegionName, august_2017_median)
 zillow <- zillow %>% rename(postal_code=RegionName)
+
 complete_df <- inner_join(causal_lv, zillow, by="postal_code") %>% filter(!is.na(neighborhood))
 ```
 
-```{r, eval=FALSE}
+```{r}
 write.csv(x=complete_df, file="../../data/las-vegas-yelp.csv")
 ```
 
@@ -61,7 +74,6 @@ ggplot(head(lv_business_types, 20), aes(x=Var1, y=Freq)) + geom_bar(stat="identi
 ```
 
 ## Which neighborhoods?
-
 ```{r}
 neighborhoods <- data.frame(sort(table(causal_lv$neighborhood), decreasing=TRUE))
 ggplot(head(neighborhoods, 20), aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + xlab("") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Las Vegas Neighborhoods")
@@ -70,9 +82,14 @@ ggplot(head(neighborhoods, 20), aes(x=Var1, y=Freq)) + geom_bar(stat="identity")
 ## How many percent of businesses closed?
 4% closed. Isn't that a small amount? Interesting...
 ```{r}
-causal_lv %>% group_by(neighborhood) %>% summarize(proportion_open=mean(open_2019))
+complete_df_sum <- complete_df %>% group_by(neighborhood) %>% 
+  summarize(proportion_open=mean(open_2019),
+            average_review=mean(stars),
+            n=n()) %>%
+  arrange(-n)
+complete_df_sum
 ```
 
 ```{r}
-ggplot(causal_lv, aes(x=open_2019)) + geom_bar()
+ggplot(complete_df_sum, aes(x=neighborhood, y=average_review)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 40, hjust = 1)) + ggtitle("Las Vegas Neighborhoods")
 ```
