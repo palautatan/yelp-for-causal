@@ -49,9 +49,16 @@ zillow <- zillow %>% rename(postal_code=RegionName)
 complete_df <- inner_join(causal_lv, zillow, by="postal_code") %>% filter(!is.na(neighborhood))
 ```
 
+
+```{r}
+complete_df <- complete_df %>% filter(grepl("Restaurants|Food", categories)) %>% filter(!grepl("Grocery", categories))
+```
+
+
 ```{r}
 write.csv(x=complete_df, file="../../data/las-vegas-yelp.csv")
 ```
+
 
 ```{r}
 set.seed(252)
