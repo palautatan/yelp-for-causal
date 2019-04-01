@@ -104,5 +104,5 @@ ggplot(complete_df, aes(y=stars)) + geom_boxplot() + facet_wrap(~open_2019) + gg
 ```
 
 ```{r}
-ggplot(complete_df, aes(y=review_count)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots business reviews that were closed/open in 2019")
+ggplot(complete_df, aes(y=review_count)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots of business reviews that were closed/open in 2019")
 ```
