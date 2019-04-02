@@ -103,11 +103,31 @@ ggplot(complete_df_sum, aes(x=neighborhood, y=average_review)) + geom_bar(stat="
 
 
 ```{r}
-ggplot(complete_df, aes(x=review_count, y=stars)) + geom_point()
+ggplot(complete_df, aes(x=review_count, y=stars)) + geom_point(alpha=0.2)
 ```
 
 ```{r}
-ggplot(complete_df, aes(y=stars)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots business ratings that were closed/open in 2019")
+ggplot(complete_df, aes(y=stars)) + geom_boxplot() + facet_wrap(~open_2019) + ggtitle("Boxplots of business ratings that were closed/open in 2019")
+```
+
+```{r}
+complete_df
+```
+
+```{r}
+ix <- which(complete_df$neighborhood=="The Strip")
+complete_df[ix,] %>% summarize(mean_rating=mean(stars),
+                               sd_rating=sd(stars),
+                               mean_count=mean(review_count),
+                               sd_count=sd(review_count))
+```
+
+
+```{r}
+standardized <- complete_df[ix,] %>% mutate(stars_standard=(stars-3.290909)/0.7679392) %>% mutate(count_standard=(review_count-271.2182)/353.1347)
+ggplot(standardized, aes(x=stars_standard)) + geom_histogram(binwidth=0.5, col="white", lwd=0.2)
+ggplot(standardized, aes(x=count_standard)) + geom_histogram(binwidth=0.5, col="white", lwd=0.2)
+
 ```
 
 ```{r}
