@@ -1,0 +1,129 @@
+---
+title: "Causal"
+output: html_document
+---
+
+## Libraries
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Read data
+```{r, message=FALSE, warning=FALSE}
+las_vegas <- read_csv("../../data/las-vegas-yelp.csv")[,-1]
+head(las_vegas)
+```
+
+
+## Cleaning
+```{r}
+las_vegas <- las_vegas %>% select(business_id, name, open_2019, neighborhood, august_2017_median, stars, review_count, categories)
+las_vegas <- las_vegas %>% filter(!grepl("Convenience", categories))
+```
+
+
+## Exploring covariates
+```{r}
+las_vegas
+```
+
+### Ratings
+```{r}
+ggplot(las_vegas, aes(x=stars)) + geom_bar()
+```
+
+```{r}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+```
+
+```{r}
+las_vegas %>% summarize(median(stars), mean(stars), getmode(stars))
+```
+
+```{r}
+las_vegas %>% filter(stars==2) %>% summarize(mean(open_2019))
+```
+
+If A is whether or not you're above or below "expected stars":
+
+```{r}
+test2 <- las_vegas %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below"))
+test2 %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019))
+```
+
+Can we be more specific with expected stars? As you increase review counts, we're more sure that the review is stable...
+
+```{r}
+las_vegas %>% filter(review_count>100) %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below")) %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019))
+```
+
+Let's wipe away fast food 
+
+```{r}
+las_vegas %>% filter(!grepl("Hotel|Fast", categories)) %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below")) %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019))
+```
+
+```{r}
+las_vegas[113,]
+```
+
+```{r}
+remove_from_name <- c("Hotel", "Casino", "Catering")
+
+dupes    <- las_vegas[which(duplicated(las_vegas %>% pull(name))),]
+nondupes <- las_vegas[which(!duplicated(las_vegas %>% pull(name))),]
+
+?duplicated
+```
+
+```{r}
+las_vegas %>% filter(stars<3) %>% filter(!grepl("Fast", categories))
+```
+
+```{r}
+las_vegas %>% filter(stars<3) %>% filter(grepl("Fast", categories))
+```
+
+### Review counts
+```{r}
+las_vegas %>% group_by(neighborhood) %>% summarize(mean_review_count=mean(review_count),
+                                                   sd_review_count=sd(review_count))
+```
+
+```{r}
+ggplot(las_vegas, aes(x=review_count)) + geom_histogram(binwidth=20) + facet_wrap(~neighborhood)
+```
+
+```{r}
+ggplot(las_vegas, aes(y=review_count)) + geom_boxplot()
+```
+
+```{r}
+neighborhood_review_stats <- las_vegas %>% group_by(neighborhood) %>% summarize(min=min(review_count), q1=quantile(review_count, 0.25), q2=median(review_count), q3=quantile(review_count, 0.75), max=max(review_count), iqr=q3-q1, whisker1=q1-1.5*iqr, whisker2=q3+1.5*iqr)
+```
+
+All have outliers.
+
+```{r}
+neighborhood_review_stats %>% select(neighborhood, max, whisker2) %>% mutate(max>whisker2)
+```
+
+```{r}
+test <- inner_join(las_vegas, neighborhood_review_stats %>% select(neighborhood, whisker2, q2), by="neighborhood")
+test
+```
+
+```{r}
+no_review_outliers <- test %>% filter(review_count<whisker2)
+ggplot(no_review_outliers, aes(x=review_count)) + geom_density() + facet_wrap(~open_2019)
+```
+
+# More
+http://cs229.stanford.edu/proj2014/Jeff%20Han,%20Justin%20Kuang,%20Derek%20Lim,%20Predicting%20Yelp%20Ratings%20From%20Business%20and%20User%20Characteristics.pdf
+
+https://www.yelp.com/topic/austin-rating-calculation-2
