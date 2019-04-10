@@ -1,0 +1,22 @@
+---
+title: "exploring-data"
+author: "Asem Berkalieva"
+date: "4/10/2019"
+output: pdf_document
+---
+
+```{r}
+# read in data
+vegas <- read.csv("../../data/vegas-updated.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
