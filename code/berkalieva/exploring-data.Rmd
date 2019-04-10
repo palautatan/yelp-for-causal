@@ -1,0 +1,12 @@
+---
+title: "Playing with data"
+author: "Asem Berkalieva"
+date: "4/10/2019"
+output: pdf_document
+---
+
+```{r}
+
+
+
+```
