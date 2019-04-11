@@ -53,13 +53,44 @@ If A is whether or not you're above or below "expected stars":
 
 ```{r}
 test2 <- las_vegas %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below"))
-test2 %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019))
+test2 %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019), n())
 ```
 
 Can we be more specific with expected stars? As you increase review counts, we're more sure that the review is stable...
 
 ```{r}
-las_vegas %>% filter(review_count>100) %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below")) %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019))
+las_vegas %>% filter(review_count>100) %>% mutate(above_stars = ifelse(stars > quantile(stars, 0.5), "above", "below")) %>% group_by(above_stars) %>% summarize(still_open=mean(open_2019), n())
+```
+
+
+```{r}
+reviews <- read_csv("../../../data/yelp-2017/yelp_review.csv")
+nrow(reviews)
+head(reviews,15)
+```
+
+```{r}
+library(lubridate)
+names(las_vegas)
+lv_business_id <- las_vegas %>% pull(business_id)
+length(lv_business_id)
+
+test <- reviews %>% filter(business_id %in% lv_business_id)
+test %>% filter(business_id==lv_business_id[1]) %>% summarize(min(as.Date(date)))
+
+ix <- 1
+grr <- sapply(1:length(lv_business_id), function(ix) {
+  id <- lv_business_id[ix]
+  min_date <- test %>% filter(business_id==id) %>% summarize(min_date=min(as.Date(date))) %>% mutate(min_date=as.character(min_date)) %>% pull(min_date)
+  min_date
+})
+
+earliest_review <- data.frame(cbind(lv_business_id, grr)) %>% rename(business_id=lv_business_id, age=grr)
+
+
+updated <- inner_join(las_vegas, earliest_review, by="business_id")
+head(updated)
+write.csv(updated, "../../data/las-vegas-yelp-2.csv")
 ```
 
 Let's wipe away fast food 
