@@ -90,7 +90,7 @@ earliest_review <- data.frame(cbind(lv_business_id, grr)) %>% rename(business_id
 
 updated <- inner_join(las_vegas, earliest_review, by="business_id")
 head(updated)
-write.csv(updated, "../../data/las-vegas-yelp-2.csv")
+# write.csv(updated, "../../data/las-vegas-yelp-2.csv")
 ```
 
 Let's wipe away fast food 
