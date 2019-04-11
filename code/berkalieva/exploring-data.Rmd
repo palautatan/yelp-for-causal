@@ -8,6 +8,16 @@ output: pdf_document
 ```{r}
 # read in data
 vegas <- read.csv("../../data/vegas-updated.csv")
+
+# how many reviews have less than 15 reviews
+dim(vegas %>% filter(review_count < 15))
+
+# look at categories
+categories <- data.frame(sort(table(unlist(strsplit(x=as.character(vegas$categories), split=";"))), decreasing=TRUE))
+
+# create binary category variable
+test <- vegas %>% mutate(cat = ifelse(grepl("American", categories), "1", "0"))
+
 ```
 
 
