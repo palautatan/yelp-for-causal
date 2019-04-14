@@ -3,7 +3,7 @@ title: "Playing with data"
 author: "Asem Berkalieva"
 date: "4/10/2019"
 output: pdf_document
----
+--- 
 
 ```{r}
 library(tidyverse)
@@ -18,7 +18,9 @@ vegas_updated <- vegas %>% filter(!grepl("Walgreens", name)) %>%
   filter(!grepl("Convenience Stores", categories)) %>%
   filter(!grepl("Gas Stations", categories)) %>%
   filter(!grepl("Car Wash", categories)) %>%
-  filter(!grepl("Wine & Spirits", categories))
+  filter(!grepl("Wine & Spirits", categories)) %>%
+  filter(!grepl("Festival", categories)) %>%
+  filter(!grepl("Water Store", categories))
 
 write.csv(vegas_updated, file = "../../data/vegas-updated.csv")
 
