@@ -1,0 +1,28 @@
+---
+title: "Fixing age column"
+output: html_document
+---
+
+I want to fix the age column.
+
+## Reading in the data
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+las_vegas <- read_csv("../../data/las-vegas-yelp.csv")[,-1]
+head(las_vegas)
+```
+
+## Converting the age to days
+Here is my <a href="https://rawgit.com/rstudio/cheatsheets/master/lubridate.pdf">reference</a>.
+```{r, warning=FALSE, message=FALSE}
+library(lubridate)
+library(dplyr)
+# this_interval <- interval(start=las_vegas$age[1], end=today())
+# days          <- int_length(this_interval)/60/60/24
+las_vegas <- las_vegas %>% mutate(age=int_length(interval(start=age, end=today()))/60/60/24)
+head(las_vegas %>% select(age))
+```
+
+```{r, eval=FALSE}
+# write.csv(x=las_vegas, file="../../data/las-vegas-yelp.csv")
+```
