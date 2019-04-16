@@ -13,12 +13,12 @@ vegas <- read.csv("../../data/vegas-updated.csv")
 
 # how many reviews have less than 15 reviews
 dim(vegas %>% filter(review_count < 15))
-
+ 
 # look at categories in descending order
 categories <- data.frame(sort(table(unlist(strsplit(x=as.character(vegas$categories), split=";"))), decreasing=TRUE))
 
 # create binary variable for type of restaurant (American vs. not)
-vegas_cat <- vegas %>% mutate(american = ifelse(grepl("American|Burgers|Pizza|Steak", categories), "1", "0"))
+vegas_cat <- vegas %>% mutate(american = ifelse(grepl("American|Burgers|Steak", categories), "1", "0"))
 
 # import this new data set into Data folder
 write.csv(vegas_cat, file = "../../data/vegas-updated-2.csv")

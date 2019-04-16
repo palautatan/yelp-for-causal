@@ -10,7 +10,7 @@ library(tidyverse)
 
 # read in data
 vegas <- read.csv("../../data/las-vegas-yelp.csv")
-
+ 
 # remove any other non-food places
 
 vegas_updated <- vegas %>% filter(!grepl("Walgreens", name)) %>%
