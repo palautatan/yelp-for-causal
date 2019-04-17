@@ -1,0 +1,77 @@
+---
+title: "Visuals"
+output: html_document
+---
+
+## Loading in data
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+las_vegas <- read_csv("../../data/las-vegas-yelp.csv")[,-1]
+# head(las_vegas)
+```
+
+## Star Distribution
+```{r}
+library(ggplot2)
+ggplot(las_vegas, aes(x=stars)) + 
+  geom_bar() +
+  ggtitle("Distribution ofLas Vegas restaurant Yelp stars") +
+  theme_minimal()
+```
+
+## Review count distribution
+```{r}
+ggplot(las_vegas, aes(x=review_count)) + 
+  geom_histogram(binwidth=200, col="white", lwd=0.15) +
+  ggtitle("Distribution of Las Vegas restaurant review counts") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(las_vegas, aes(y=review_count)) + 
+  geom_boxplot() +
+  ggtitle("Distribution of Las Vegas restaurant review counts") +
+  theme_minimal()
+```
+
+```{r}
+outliers    <- boxplot(las_vegas$review_count, plot=FALSE)$out
+no_outliers <- data.frame(review_count=las_vegas$review_count[-which(las_vegas$review_count %in% outliers)])
+
+ggplot(no_outliers, aes(x=review_count)) +
+  geom_histogram(binwidth=30, col="white", lwd=0.15) +
+  ggtitle("Distribution of Las Vegas restaurant review counts") +
+  labs(subtitle="Outliers removed") +
+  theme_minimal()
+```
+
+## Age distribution
+```{r}
+ggplot(las_vegas, aes(x=age)) + 
+  geom_histogram(binwidth=200, col="white", lwd=0.15) +
+  ggtitle("Distribution of Las Vegas restaurant age") +
+  theme_minimal()
+```
+
+## Open in 2019 distribution
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+las_vegas_open <- las_vegas %>% mutate(open_2019=ifelse(open_2019==0, "closed", "open"))
+
+ggplot(las_vegas_open, aes(x=open_2019)) + 
+  geom_bar() +
+  ggtitle("Distribution of Las Vegas restaurant closure") +
+  xlab("2019 status") +
+  theme_minimal()
+```
+
+## American or not distribution
+```{r, warning=FALSE, message=FALSE}
+las_vegas_american <- las_vegas %>% mutate(american=ifelse(american==1, "american", "other"))
+
+ggplot(las_vegas_american, aes(x=american)) + 
+  geom_bar() +
+  ggtitle("Distribution of 'American' Las Vegas restaurants") +
+  xlab("Cuisine") +
+  theme_minimal()
+```
