@@ -1,0 +1,130 @@
+---
+title: "Yelp Data Aggregation"
+html_document:
+    theme: united
+---
+
+I have two Yelp datasets, one from 2017 and the other from 2019.
+
+## Libraries
+```{r, message=FALSE, warning=FALSE}
+library(jsonlite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(readr)
+library(ggplot2)
+library(lubridate)
+```
+
+### Yelp Challenge 2019
+```{r, message=FALSE, warning=FALSE}
+yelp_2019 <- "../../../data/yelp-2019/business.json"
+yelp_2019 <- stream_in(file(yelp_2019))
+yelp_2019 <- flatten(yelp_2019)
+yelp_2019 <- as_tibble(yelp_2019)
+```
+
+### Yelp Challenge 2017
+```{r, message=FALSE, warning=FALSE}
+wayback <- "../../../data/yelp-2017/yelp_business.csv"
+wayback <- read_csv(wayback)
+```
+
+```{r}
+reviews <- read_csv("../../../data/yelp-2017/yelp_review.csv")
+```
+
+
+### Cutting into subsets on shared businesses only
+```{r}
+intersecting_businesses <- intersect(wayback$business_id, yelp_2019$business_id)
+wayback_subset          <- wayback %>% filter(business_id %in% intersecting_businesses)
+yelp_2019_subset        <- yelp_2019 %>% filter(business_id %in% intersecting_businesses)
+```
+
+### Take only the 0's and 1's from Yelp Challenge 2019 Business Data
+```{r}
+yelp_2019_subberset <- yelp_2019_subset %>% 
+  select(business_id, is_open) %>% 
+  rename(open_2019=is_open)
+```
+
+### Merge datasets
+```{r}
+wayback_subset <- wayback_subset %>% rename(open_2017=is_open)
+causal_set     <- merge(wayback_subset, yelp_2019_subberset, by="business_id")
+
+# * ONLY KEEP THOSE THAT WERE OPEN IN 2017
+causal_set <- causal_set[which(causal_set$open_2017==1),]
+```
+
+### Narrow down to Las Vegas only
+```{r}
+causal_lv <- causal_set %>% filter(city=="Las Vegas") %>% filter(state=="NV")
+causal_lv <- causal_lv %>% select(-city, -state)
+```
+
+### Removal of no address
+```{r}
+no_addy   <- which(sapply(causal_lv %>% select(address), nchar)<10)
+causal_lv <- causal_lv[-no_addy,]
+```
+
+### Filtering for food and restaurants, removing groceries
+```{r}
+causal_lv <- causal_lv %>% 
+  filter(grepl("Restaurants|Food", categories)) %>% 
+  filter(!grepl("Grocery", categories))
+```
+
+```{r}
+causal_lv <- causal_lv %>% 
+  filter(!grepl("Walgreens", name)) %>%
+  filter(!grepl("Specialty Food", categories)) %>%
+  filter(!grepl("Convenience Stores", categories)) %>%
+  filter(!grepl("Gas Stations", categories)) %>%
+  filter(!grepl("Car Wash", categories)) %>%
+  filter(!grepl("Wine & Spirits", categories)) %>%
+  filter(!grepl("Festival", categories)) %>%
+  filter(!grepl("Water Store", categories))
+```
+
+```{r}
+# create binary variable for type of restaurant (American vs. not)
+causal_lv <- causal_lv %>% 
+  mutate(american = ifelse(grepl("American|Burgers|Steak", categories), "1", "0"))
+```
+
+
+### Calculating age
+```{r}
+# * GET ID'S TO MATCH TO REVIEWS
+lv_business_id <- causal_lv %>% pull(business_id)
+
+lv_reviews <- reviews %>% filter(business_id %in% lv_business_id)
+
+min_dates <- sapply(1:length(lv_business_id), function(ix) {
+  id <- lv_business_id[ix]
+  min_date <- lv_reviews %>% filter(business_id==id) %>% 
+    summarize(min_date=min(as.Date(date))) %>% 
+    mutate(min_date=as.character(min_date)) %>% 
+    pull(min_date)
+  min_date
+})
+
+earliest_review <- data.frame(cbind(lv_business_id, min_dates)) %>%
+  rename(business_id=lv_business_id, age=min_dates)
+
+causal_lv <- inner_join(causal_lv, earliest_review, by="business_id")
+causal_lv <- causal_lv %>% 
+  mutate(age=int_length(interval(start=age, end=today()))/60/60/24)
+head(causal_lv %>% select(age))
+```
+
+### Write the csv
+```{r}
+# head(causal_lv)
+# write.csv(x=causal_lv, file="../../data/las-vegas-yelp.csv")
+```
