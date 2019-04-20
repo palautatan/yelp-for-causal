@@ -15,7 +15,7 @@ las_vegas <- read_csv("../../data/las-vegas-yelp.csv")[,-1]
 library(ggplot2)
 ggplot(las_vegas, aes(x=stars)) + 
   geom_bar() +
-  ggtitle("Distribution ofLas Vegas restaurant Yelp stars") +
+  ggtitle("Distribution of Las Vegas restaurant Yelp stars") +
   theme_minimal()
 ```
 
