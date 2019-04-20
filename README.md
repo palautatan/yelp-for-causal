@@ -4,10 +4,6 @@ When you think Vegas, you may think of blue colored men, all-you-can-eat buffets
 ## Is Yelp the gamechanger?
 What is the effect of a Las Vegas restaurant’s Yelp ratings on its two year survival status? Can we determine counterfactual probability of 2 year survival had all restaurants received Yelp ratings above some threshold and the counterfactual probability of 2 year survival had all restaurants received Yelp ratings below some threshold?
 
-Visually, it doesn't look like it... but are there underlying patterns we can detect?
-
-<img src="https://github.com/palautatan/yelp-for-causal/blob/master/figures/Rplot04.png?raw=true">
-
 ## Contributors
 Aside from myself, I've got my PH142 gang all here! (We were all graduate student instructors for the same class... aka been through a lot, yeet.)
 
@@ -17,5 +13,7 @@ This is our team:
 - Asem Berkalieva
 - Me (Edie Espejo)
 
-## Stay tuned
-I'll be pushing and pulling plenty for the next two months. I'm so excited for this project... Let's go!!!
+## Code
+01. <a href="code/espejo/01-data.html">Data cleaning</a>  
+02. <a href="code/espejo/02-visuals.html">Initial visualization</a>  
+
