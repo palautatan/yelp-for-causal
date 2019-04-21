@@ -123,6 +123,18 @@ causal_lv <- causal_lv %>%
 head(causal_lv %>% select(age))
 ```
 
+### Identifying multiples/chains
+```{r}
+causal_lv <- causal_lv %>% 
+  mutate(chain=gsub("'|-", "", tolower(name))) %>% 
+  mutate(chain=duplicated(chain))
+```
+
+### Remove open 2017
+```{r}
+causal_lv <- causal_lv %>% select(-open_2017, -latitude, -longitude)
+```
+
 ### Write the csv
 ```{r}
 # head(causal_lv)
