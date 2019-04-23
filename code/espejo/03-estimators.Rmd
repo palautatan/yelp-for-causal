@@ -26,52 +26,58 @@ las_vegas <- las_vegas[complete.cases(las_vegas),]
 I'm going to make age and review count into bins.
 ```{r}
 # * REVIEW COUNT BINS
-reviews     <- sort(las_vegas %>% pull(review_count))
-percentiles <- sapply(seq(0, 1, 0.1), function(x) quantile(reviews, x))[-1]
-
-review_percentiles <- rep(NULL, times=length(reviews))
-for (ix in 1:length(percentiles)) {
-  this_per <- rev(percentiles)[ix]
-  these_ix <- which(reviews<this_per)
-  review_percentiles[these_ix] <- 11-ix
-}
-
-review_bins <- cbind(review_count=reviews, review_percentiles=review_percentiles)
-las_vegas_2 <- merge(las_vegas, data.frame(review_bins), by="review_count")
+# reviews     <- sort(las_vegas %>% pull(review_count))
+# percentiles <- sapply(seq(0, 1, 0.1), function(x) quantile(reviews, x))[-1]
+# 
+# review_percentiles <- rep(NULL, times=length(reviews))
+# for (ix in 1:length(percentiles)) {
+#   this_per <- rev(percentiles)[ix]
+#   these_ix <- which(reviews<this_per)
+#   review_percentiles[these_ix] <- 11-ix
+# }
+# 
+# review_bins <- cbind(review_count=reviews, review_percentiles=review_percentiles)
+# las_vegas <- merge(las_vegas, data.frame(review_bins), by="review_count")
 ```
 
 ```{r}
-# * REVIEW COUNT BINS
-ages        <- sort(las_vegas %>% pull(age))
-percentiles <- sapply(seq(0, 1, 0.1), function(x) quantile(ages, x))[-1]
+# * REVIEW AGE BINS
+# ages        <- sort(las_vegas %>% pull(age))
+# percentiles <- sapply(seq(0, 1, 0.1), function(x) quantile(ages, x))[-1]
+# 
+# age_percentiles <- rep(NULL, times=length(reviews))
+# for (ix in 1:length(percentiles)) {
+#   this_per <- rev(percentiles)[ix]
+#   these_ix <- which(ages<this_per)
+#   age_percentiles[these_ix] <- 11-ix
+# }
+# 
+# age_bins <- cbind(age=ages, age_percentiles=age_percentiles)
+# las_vegas <- merge(las_vegas, data.frame(age_bins), by="age")
+```
 
-age_percentiles <- rep(NULL, times=length(reviews))
-for (ix in 1:length(percentiles)) {
-  this_per <- rev(percentiles)[ix]
-  these_ix <- which(ages<this_per)
-  age_percentiles[these_ix] <- 11-ix
-}
 
-age_bins <- cbind(age=ages, age_percentiles=age_percentiles)
-las_vegas_2 <- merge(las_vegas_2, data.frame(age_bins), by="age")
+```{r}
+las_vegas <- las_vegas %>% mutate(age_binary=age>median(age),
+                                  review_binary=review_count>median(review_count))
 ```
 
 ## Simple substitution estimator.
 I used R Lab 2.
 ```{r}
-e_a1 <- las_vegas_2 %>% filter(star_intervention==1) %>%
-  group_by(neighborhood, american, chain) %>%
+e_a1 <- las_vegas %>% filter(star_intervention==1) %>%
+  group_by(neighborhood, american, chain, age_binary, review_binary) %>%
   summarize(e.ya1=mean(open_2019))
 # nrow(e_a1)
 
-e_a0 <- las_vegas_2 %>% filter(star_intervention==0) %>%
-  group_by(neighborhood, american, chain=) %>%
+e_a0 <- las_vegas %>% filter(star_intervention==0) %>%
+  group_by(neighborhood, american, chain, age_binary, review_binary) %>%
   summarize(e.ya0=mean(open_2019))
 # nrow(e_a0)
 
-probs <- las_vegas_2 %>% 
+probs <- las_vegas %>% 
   group_by(neighborhood, american, chain) %>% 
-  summarize(p=n()/nrow(las_vegas_2))
+  summarize(p=n()/nrow(las_vegas))
 
 expectations <- merge(merge(e_a1, e_a0), probs)
 expectations <- expectations %>% mutate(weighted.avg=(e.ya1-e.ya0)*p)
@@ -83,18 +89,18 @@ psi.p0*100
 ## IPTW.
 ```{r}
 library(nnet)
-gAW_reg  <- multinom(star_intervention~neighborhood+american+review_count+age, data=las_vegas_2)
+gAW_reg  <- multinom(star_intervention~neighborhood+american+review_count+age, data=las_vegas)
 gAW_pred <- predict(gAW_reg, type="probs")
 
 gAW <- as.numeric(gAW_pred)
 wt  <- gAW^-1
 
-IPTW <- mean(wt*as.numeric(las_vegas_2$star_intervention==1)*las_vegas_2$open_2019) -
-        mean(wt*as.numeric(las_vegas_2$star_intervention==0)*las_vegas_2$open_2019)
+IPTW <- mean(wt*as.numeric(las_vegas$star_intervention==1)*las_vegas$open_2019) -
+        mean(wt*as.numeric(las_vegas$star_intervention==0)*las_vegas$open_2019)
 IPTW
 ```
 
 ```{r}
-IPTW_or <- mean(wt*as.numeric(las_vegas_2$star_intervention==1)*las_vegas_2$open_2019) / mean( wt*as.numeric(las_vegas_2$star_intervention==1)) - mean(wt*as.numeric(las_vegas_2$star_intervention==0)*las_vegas_2$open_2019) / mean( wt*as.numeric(las_vegas_2$star_intervention==0))
+IPTW_or <- mean(wt*as.numeric(las_vegas$star_intervention==1)*las_vegas$open_2019) / mean( wt*as.numeric(las_vegas$star_intervention==1)) - mean(wt*as.numeric(las_vegas$star_intervention==0)*las_vegas$open_2019) / mean( wt*as.numeric(las_vegas$star_intervention==0))
 IPTW_or
 ```
