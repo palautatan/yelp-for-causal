@@ -16,4 +16,5 @@ This is our team:
 ## Code
 01. <a href="code/espejo/01-data.html">Data cleaning</a>  
 02. <a href="code/espejo/02-visuals.html">Initial visualization</a>  
+03. <a href="code/espejo/03-estimators.html">Estimation</a>  
 
