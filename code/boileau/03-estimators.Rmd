@@ -107,10 +107,97 @@ IPTW_or
 
 ## SuperLearner TMLE
 
+```{r sl_setup}
+library(SuperLearner)
+library(ltmle)
+
+# specify the library
+sl_lib <- c("SL.glm", "SL.rpart", "SL.rpartPrune", "SL.glmnet",
+            "SL.mean", "SL.ranger", "SL.nnet")
+
+# turn the covaraites into binary values
+las_vegas <- las_vegas %>%
+  mutate(
+    american = as.numeric(american),
+    chain = as.numeric(chain),
+    age_binary = as.numeric(age_binary),
+    review_binary = as.numeric(review_binary)
+  )
+
+set.seed(252)
+```
+
+
 In this section, SuperLearner is used to implement the G-comptutation, IPTW and
 TMLE estimators. The emprirical risk of each estimator is evaluted through 
 cross-validation. The mean estimator is also impletmented as a benchmark.
-```{r superlearner}
+
+```{r superlearner_gcomp, cache=TRUE}
+cov_int_df <- las_vegas %>% 
+  select(american, chain, age_binary, review_binary, star_intervention) %>%
+  as.data.frame
+
+# estimate qbar_0(A, W)
+qbar_sl <- SuperLearner(
+  Y = las_vegas$open_2019,
+  X = cov_int_df,
+  SL.library = sl_lib,
+  family = "binomial"
+)
+
+# estimate the outcomes under different exposures
+all_above_df <- las_vegas %>%
+  select(american, chain, age_binary, review_binary,
+         star_intervention) %>%
+  mutate(star_intervention = 1) %>%
+  as.data.frame
+qbar_1W <- predict(qbar_sl, newdata = all_above_df)$pred
+all_below_df <- las_vegas %>%
+  select(american, chain, age_binary, review_binary,
+         star_intervention) %>%
+  mutate(star_intervention = 0)%>%
+  as.data.frame
+qbar_0W <- predict(qbar_sl, newdata = all_below_df)$pred
+
+# simple sub estimator
+Psi_hat_ss <- mean(qbar_1W - qbar_0W)
+```
+
+First, the simple substitution estimator is calculated using `SuperLearner`.
+The estimate is $\hat{\Psi}_{ss}(P_n) = $ `r round(Psi_hat_ss, 3)`.
+
+```{r superlearner_iptw, cache = TRUE}
+# estimate the treatment mechanism
+ghat_sl <- SuperLearner(Y = las_vegas$star_intervention,
+                        X = cov_int_df %>% select(-star_intervention),
+                        SL.library = sl_lib, family = "binomial")
+
+# fit the treatment mechanism in the counterfactual world
+ghat_1W <- ghat_sl$SL.predict
+ghat_0W <- 1 - ghat_1W
+
+# compute IPTW
+Psi_hat_iptw <- mean(
+  ((las_vegas$star_intervention == 1) / ghat_1W - 
+   (las_vegas$star_intervention == 0) / ghat_0W) * las_vegas$open_2019)
+
+# compute the sIPTW
+mean_ghat_1W <- mean((las_vegas$star_intervention == 1) / ghat_1W)
+mean_ghat_0W <- mean((las_vegas$star_intervention == 0) / ghat_0W)
+Psi_hat_siptw <- mean(
+  (((las_vegas$star_intervention == 1) / ghat_1W)/mean_ghat_1W - 
+   ((las_vegas$star_intervention == 0) / ghat_0W)/mean_ghat_0W) *
+    las_vegas$open_2019)
+```
+
+Next, the IPTW and stabilized IPTW estimators are computed. The results:
+$\hat{\Psi}_{IPTW}(P_n) = $ `r round(Psi_hat_iptw, 3)`  
+$\hat{\Psi}_{sIPTW}(P_n) = $ `r round(Psi_hat_siptw, 3)`
+
+```{r superlearner_tmle}
 
 ```
 
+
+Finally, the TMLE estimate is computed using the SuperLearner. The result:
+$\hat{\Psi}_{TMLE}(P_n) = $ `r round(Psi_hat_tmle, 3)`
