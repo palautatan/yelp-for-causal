@@ -113,7 +113,7 @@ library(ltmle)
 
 # specify the library
 sl_lib <- c("SL.glm", "SL.rpart", "SL.rpartPrune", "SL.glmnet",
-            "SL.mean", "SL.ranger", "SL.nnet")
+            "SL.mean", "SL.ranger")
 
 # turn the covaraites into binary values
 las_vegas <- las_vegas %>%
@@ -132,6 +132,7 @@ In this section, SuperLearner is used to implement the G-comptutation, IPTW and
 TMLE estimators. The emprirical risk of each estimator is evaluted through 
 cross-validation. The mean estimator is also impletmented as a benchmark.
 
+First, the simple substitution estimator is calculated using `SuperLearner`.
 ```{r superlearner_gcomp, cache=TRUE}
 cov_int_df <- las_vegas %>% 
   select(american, chain, age_binary, review_binary, star_intervention) %>%
@@ -162,10 +163,9 @@ qbar_0W <- predict(qbar_sl, newdata = all_below_df)$pred
 # simple sub estimator
 Psi_hat_ss <- mean(qbar_1W - qbar_0W)
 ```
-
-First, the simple substitution estimator is calculated using `SuperLearner`.
 The estimate is $\hat{\Psi}_{ss}(P_n) = $ `r round(Psi_hat_ss, 3)`.
 
+Next, the IPTW and stabilized IPTW estimators are computed. 
 ```{r superlearner_iptw, cache = TRUE}
 # estimate the treatment mechanism
 ghat_sl <- SuperLearner(Y = las_vegas$star_intervention,
@@ -190,14 +190,22 @@ Psi_hat_siptw <- mean(
     las_vegas$open_2019)
 ```
 
-Next, the IPTW and stabilized IPTW estimators are computed. The results:
+The results:
 $\hat{\Psi}_{IPTW}(P_n) = $ `r round(Psi_hat_iptw, 3)`  
 $\hat{\Psi}_{sIPTW}(P_n) = $ `r round(Psi_hat_siptw, 3)`
 
-```{r superlearner_tmle}
+Finally, the TMLE estimate is computed using the SuperLearner. Errors arise from
+near practical positivity assumption violations.
+```{r superlearner_tmle, message=FALSE, warning=FALSE, error=FALSE}
+# define the dataframe
+obs_df <- las_vegas %>% 
+  select(american, chain, age_binary, review_binary,
+         star_intervention, open_2019) %>%
+  as.data.frame
 
+# run the ltmle function
+tmle_sl <- ltmle(data = obs_df, Anodes = "star_intervention",
+                 Ynodes = "open_2019", abar = list(1, 0), SL.library = sl_lib)
+
+summary(tmle_sl)
 ```
-
-
-Finally, the TMLE estimate is computed using the SuperLearner. The result:
-$\hat{\Psi}_{TMLE}(P_n) = $ `r round(Psi_hat_tmle, 3)`
