@@ -46,6 +46,7 @@ library(SuperLearner)
 library(glmnet)
 library(rpart)
 library(ranger)
+library(ltmle)
 
 # define our SL library
 sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
