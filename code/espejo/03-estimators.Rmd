@@ -104,3 +104,39 @@ IPTW
 IPTW_or <- mean(wt*as.numeric(las_vegas$star_intervention==1)*las_vegas$open_2019) / mean( wt*as.numeric(las_vegas$star_intervention==1)) - mean(wt*as.numeric(las_vegas$star_intervention==0)*las_vegas$open_2019) / mean( wt*as.numeric(las_vegas$star_intervention==0))
 IPTW_or
 ```
+
+
+## TMLE.
+```{r}
+library(SuperLearner)
+# specify the library
+# install.packages("gam")
+SL.library<- c("SL.glm", "SL.step", "SL.gam")
+
+X <- X1 <- X0 <- las_vegas %>% select(star_intervention, american, review_count, age)
+
+X1$star_intervention <- 1         # under exposure
+X0$star_intervention <- 0 
+
+QbarSL <- SuperLearner(Y=las_vegas$open_2019, 
+                       X=X, 
+                       SL.library=SL.library, family="binomial")
+
+# names(las_vegas)
+QbarSL
+
+
+QbarAW <- predict(QbarSL, newdata=las_vegas %>% select(star_intervention, american, review_count, age))$pred
+
+Qbar1W <- predict(QbarSL, newdata=X1)$pred
+# expected injury severity, given A=0 and covariates
+Qbar0W <- predict(QbarSL, newdata=X0)$pred
+
+# Simple sub
+PsiHat.SS<-mean(Qbar1W - Qbar0W)
+PsiHat.SS
+
+
+gHatSL<- SuperLearner(Y=las_vegas$star_intervention, X=X %>% select(-star_intervention, -business_id, -neighborhood, -name, -address, -postal_code, -stars, -categories, -open_2019)),
+                       SL.library=SL.library, family="binomial")
+```
