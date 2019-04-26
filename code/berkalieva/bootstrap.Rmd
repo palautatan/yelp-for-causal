@@ -42,6 +42,11 @@ cov_int_df <- las_vegas %>%
 
 Create a function to find all three estimates through SuperLearner.
 ```{r, warning=FALSE}
+library(SuperLearner)
+library(glmnet)
+library(rpart)
+library(ranger)
+
 run.tmle <- function(ObsData, SL.library) {
 
   # estimate qbar_0(A, W)
@@ -146,7 +151,7 @@ for (b in 1:B) {
   estimates[b,] <- run.tmle(ObsData = bootData, 
                             SL.library = sl_lib)$estimates
 }
-
+ 
 colnames(estimates) <- c("SimpSubs", "IPTW", "TMLE")
 ```
 
