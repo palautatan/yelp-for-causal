@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 I'm exploring the data and creating a new 'category' variable
-
+ 
 ```{r}
 # read in data
 vegas <- read.csv("../../data/vegas-updated.csv")

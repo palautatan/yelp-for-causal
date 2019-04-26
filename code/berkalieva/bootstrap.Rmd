@@ -1,0 +1,84 @@
+---
+title: "bootstrap"
+author: "Asem Berkalieva"
+date: "4/25/2019"
+output: pdf_document
+---
+
+Read in data.
+```{r}
+library(readr)
+las_vegas <- read_csv("../../data/las-vegas-yelp.csv")[,-1]
+head(las_vegas)
+```
+
+Create the intervention node.
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+las_vegas <- las_vegas %>% mutate(star_intervention=ifelse(stars>=3.5, 1, 0))
+```
+
+Remove any NA's.
+```{r}
+las_vegas <- las_vegas[complete.cases(las_vegas),]
+# length(complete.cases(las_vegas)) # 3644 complete
+
+las_vegas <- las_vegas %>% mutate(age_binary=age>median(age),
+                                  review_binary=review_count>median(review_count))
+```
+
+Write the run.tmle function
+```{r}
+run.tmle <- function(ObsData, SL.library) {
+  
+}
+```
+
+Bootstrap the data
+```{r}
+SL.library <- c("SL.glm", "SL.rpart", "SL.rpartPrune", "SL.glmnet", "SL.mean", "SL.ranger")
+
+# number of bootstrap samples
+# B <- 500
+B <- 5 # while writing code to save time
+
+# data frame for estimates based on boot strap sample
+estimates <- data.frame(matrix(NA, nrow = B, ncol = 6))
+
+# for loop from b = 1 to total number of bootstrap samples
+for (b in 1:B) {
+  
+  # sample the indices 1 to n with replacement
+  bootIndices <- sample(1:n, replace = TRUE)
+  bootData <- ObsData[bootIndices, ]
+  
+  # calling the above function
+  estimates[b,] <- run.tmle(ObsData = bootData, SL.library = SL.library)$estimates
+  
+  # keep track of the iterations completed
+  print(b)
+}
+
+colnames(estimates) <- c("SimpSubs", "IPTW", "TMLE")
+```
+
+Graph the bootstrap distributions
+```{r}
+# explore the bootstrapped point estimates
+summary(estimates)
+
+# histograms of data
+hist(estimates[,1], main = "Histogram of bootstrapped point estimates from the Simple Substition estimator", xlab = "Point Estimates")
+
+hist(estimates[,2], main = "Histogram of bootstrapped point estimates from the IPTW estimator", xlab = "Point Estimates")
+
+hist(estimates[,3], main = "Histogram of bootstrapped point estimates from the TMLE estimator", xlab = "Point Estimates")
+```
+
+Generate confidence intervals
+```{r}
+# confidence intervals
+
+```
+
+
