@@ -39,13 +39,16 @@ cov_int_df <- las_vegas %>%
   as.data.frame
 
 ```
-
+ 
 Create a function to find all three estimates through SuperLearner.
 ```{r, warning=FALSE}
 library(SuperLearner)
 library(glmnet)
 library(rpart)
 library(ranger)
+
+# define our SL library
+sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
 
 run.tmle <- function(ObsData, SL.library) {
 
@@ -129,12 +132,9 @@ est*100
 
 Bootstrap the data
 ```{r, warning = FALSE}
-# define our SL library
-sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
-
 # number of bootstrap samples
-# B <- 500
-B <- 5 # while writing code to save time
+B <- 500
+# B <- 5 # while writing code to save time
 n <- 3644
 
 # data frame for estimates based on boot strap sample
