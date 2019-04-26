@@ -25,38 +25,126 @@ las_vegas <- las_vegas[complete.cases(las_vegas),]
 
 las_vegas <- las_vegas %>% mutate(age_binary=age>median(age),
                                   review_binary=review_count>median(review_count))
+
+las_vegas <- las_vegas %>%
+  mutate(
+    american = as.numeric(american),
+    chain = as.numeric(chain),
+    age_binary = as.numeric(age_binary),
+    review_binary = as.numeric(review_binary)
+  )
+
+cov_int_df <- las_vegas %>% 
+  select(american, chain, age_binary, review_binary, star_intervention) %>%
+  as.data.frame
+
 ```
 
-Write the run.tmle function
-```{r}
+Create a function to find all three estimates through SuperLearner.
+```{r, warning=FALSE}
 run.tmle <- function(ObsData, SL.library) {
+
+  # estimate qbar_0(A, W)
+  qbar_sl <- SuperLearner(
+    Y = ObsData$open_2019,
+    X = cov_int_df,
+    SL.library = SL.library,
+    family = "binomial"
+  )
+
+  # estimate the outcomes under different exposures
+  all_above_df <- ObsData %>%
+    select(american, chain, age_binary, review_binary,
+           star_intervention) %>%
+    mutate(star_intervention = 1) %>%
+    as.data.frame
+  qbar_1W <- predict(qbar_sl, newdata = all_above_df)$pred
+  all_below_df <- ObsData %>%
+    select(american, chain, age_binary, review_binary,
+           star_intervention) %>%
+    mutate(star_intervention = 0)%>%
+    as.data.frame
+  qbar_0W <- predict(qbar_sl, newdata = all_below_df)$pred
   
+  # simple sub estimator
+  Psi_hat_ss <- mean(qbar_1W - qbar_0W)
+  
+  # estimate the treatment mechanism
+  ghat_sl <- SuperLearner(Y = ObsData$star_intervention,
+                        X = cov_int_df %>% select(-star_intervention),
+                        SL.library = SL.library, family = "binomial")
+
+  # fit the treatment mechanism in the counterfactual world
+  ghat_1W <- ghat_sl$SL.predict
+  ghat_0W <- 1 - ghat_1W
+    
+  # compute IPTW
+  Psi_hat_iptw <- mean(
+    ((ObsData$star_intervention == 1) / ghat_1W - 
+     (ObsData$star_intervention == 0) / ghat_0W) * ObsData$open_2019)
+  
+  # compute the sIPTW
+  mean_ghat_1W <- mean((ObsData$star_intervention == 1) / ghat_1W)
+  mean_ghat_0W <- mean((ObsData$star_intervention == 0) / ghat_0W)
+  Psi_hat_siptw <- mean(
+    (((ObsData$star_intervention == 1) / ghat_1W)/mean_ghat_1W - 
+     ((ObsData$star_intervention == 0) / ghat_0W)/mean_ghat_0W) *
+      ObsData$open_2019)
+  
+    
+  # prep the TMLE section
+  obs_df <- las_vegas %>% 
+    select(american, chain, age_binary, review_binary,
+         star_intervention, open_2019) %>%
+    as.data.frame
+
+  # TMLE: run the ltmle function
+  tmle_sl <- ltmle(data = obs_df, Anodes = "star_intervention",
+                     Ynodes = "open_2019", abar = list(1, 0), SL.library
+                   = sl_lib)
+  
+  # extract the TMLE ATE estimate
+  tmle_summary <- summary(tmle_sl)
+  Psi_hat_tmle <- tmle_summary$effect.measures$ATE$estimate
+    
+    
+  # store the three estimates
+  estimates <- data.frame(cbind(Psi_hat_ss = Psi_hat_ss,
+                                Psi_hat_siptw = Psi_hat_siptw,
+                                Psi_hat_tmle = Psi_hat_tmle))
+  
+  list(estimates = estimates)
 }
+
+# run the function on the original las_vegas data
+out <- run.tmle(ObsData = las_vegas, SL.library = sl_lib)
+est <- out$estimates
+est*100
 ```
 
 Bootstrap the data
-```{r}
-SL.library <- c("SL.glm", "SL.rpart", "SL.rpartPrune", "SL.glmnet", "SL.mean", "SL.ranger")
+```{r, warning = FALSE}
+# define our SL library
+sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
 
 # number of bootstrap samples
 # B <- 500
 B <- 5 # while writing code to save time
+n <- 3644
 
 # data frame for estimates based on boot strap sample
-estimates <- data.frame(matrix(NA, nrow = B, ncol = 6))
+estimates <- data.frame(matrix(NA, nrow = B, ncol = 3))
 
 # for loop from b = 1 to total number of bootstrap samples
 for (b in 1:B) {
   
   # sample the indices 1 to n with replacement
   bootIndices <- sample(1:n, replace = TRUE)
-  bootData <- ObsData[bootIndices, ]
+  bootData <- las_vegas[bootIndices, ]
   
   # calling the above function
-  estimates[b,] <- run.tmle(ObsData = bootData, SL.library = SL.library)$estimates
-  
-  # keep track of the iterations completed
-  print(b)
+  estimates[b,] <- run.tmle(ObsData = bootData, 
+                            SL.library = sl_lib)$estimates
 }
 
 colnames(estimates) <- c("SimpSubs", "IPTW", "TMLE")
@@ -68,17 +156,37 @@ Graph the bootstrap distributions
 summary(estimates)
 
 # histograms of data
+
+# for simple sub
 hist(estimates[,1], main = "Histogram of bootstrapped point estimates from the Simple Substition estimator", xlab = "Point Estimates")
 
+# for sIPTW
 hist(estimates[,2], main = "Histogram of bootstrapped point estimates from the IPTW estimator", xlab = "Point Estimates")
 
+# for TMLE
 hist(estimates[,3], main = "Histogram of bootstrapped point estimates from the TMLE estimator", xlab = "Point Estimates")
 ```
 
 Generate confidence intervals
 ```{r}
-# confidence intervals
+# function to get confidence intervals
+create.CI <- function(pt, boot, alpha = 0.05) {
+  Zquant <- qnorm(alpha/2, lower.tail = FALSE)
+  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
+  CI.quant <- quantile(boot, prob = c(0.025, 0.975))
+  out <- data.frame(rbind(CI.normal, CI.quant)) * 100
+  colnames(out) <- c('CI.lo', 'CI.hi')
+  out
+}
 
+# CI for SS assuming a normal dist & then using quantiles
+create.CI(pt= est$Psi_hat_ss, boot = estimates[,"SimpSubs"])
+
+# CI for IPTW assuming normal & also using quantiles
+create.CI(pt = est$Psi_hat_siptw, boot = estimates[,"IPTW"])
+
+# CI for TMLE assuming normal & also using quantiles
+create.CI(pt = est$Psi_hat_tmle, boot = estimates[,"TMLE"])
 ```
 
 
