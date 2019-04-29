@@ -33,11 +33,6 @@ las_vegas <- las_vegas %>%
     age_binary = as.numeric(age_binary),
     review_binary = as.numeric(review_binary)
   )
-
-cov_int_df <- las_vegas %>% 
-  select(american, chain, age_binary, review_binary, star_intervention) %>%
-  as.data.frame
-
 ```
 
 Create a function to find all three estimates through SuperLearner.
@@ -52,6 +47,10 @@ library(ltmle)
 sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
 
 run.tmle <- function(ObsData, SL.library) {
+  
+  cov_int_df <- las_vegas %>% 
+  select(american, chain, age_binary, review_binary, star_intervention) %>%
+  as.data.frame
 
   # estimate qbar_0(A, W)
   qbar_sl <- SuperLearner(
@@ -102,7 +101,7 @@ run.tmle <- function(ObsData, SL.library) {
   
     
   # prep the TMLE section
-  obs_df <- las_vegas %>% 
+  obs_df <- ObsData %>% 
     select(american, chain, age_binary, review_binary,
          star_intervention, open_2019) %>%
     as.data.frame
@@ -134,8 +133,8 @@ est*100
 Bootstrap the data
 ```{r, warning = FALSE}
 # number of bootstrap samples
-B <- 500
-# B <- 5 # while writing code to save time
+# B <- 500
+B <- 5 # while writing code to save time
 n <- 3644
 
 # data frame for estimates based on boot strap sample
