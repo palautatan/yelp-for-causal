@@ -1,0 +1,65 @@
+---
+title: "Bootstrap"
+output: html_document
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(readr)
+boot_1 <- read_csv("../../data/boot-1.csv")[,-1]
+boot_2 <- read_csv("../../data/boot-2.csv")[,-1]
+boot_3 <- read_csv("../../data/boot-3.csv")[,-1]
+boot_4 <- read_csv("../../data/boot-4.csv")[,-1]
+boot_5 <- read_csv("../../data/boot-5.csv")[,-1]
+```
+
+```{r}
+boots <- rbind(boot_1, boot_2, boot_3, boot_4, boot_5)
+boots <- boots[-which(duplicated(boots)),]
+estimates <- boots
+```
+
+
+
+```{r}
+# explore the bootstrapped point estimates
+summary(estimates)
+
+estimates_2 <- data.frame(estimates)
+
+library(ggplot2)
+ggplot(estimates_2, aes(x=SimpSubs)) + 
+  geom_histogram(binwidth=0.001, col="black", fill="cyan3") +
+  theme_minimal()
+
+ggplot(estimates_2, aes(x=IPTW)) + 
+  geom_histogram(binwidth=0.001, col="black", fill="cyan3") +
+  theme_minimal()
+
+ggplot(estimates_2, aes(x=TMLE)) + 
+  geom_histogram(binwidth=0.00001, col="black", fill="cyan3") +
+  theme_minimal()
+```
+
+Generate confidence intervals
+```{r}
+# function to get confidence intervals
+create.CI <- function(pt, boot, alpha = 0.05) {
+  Zquant <- qnorm(alpha/2, lower.tail = FALSE)
+  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
+  CI.quant <- quantile(boot, prob = c(0.025, 0.975))
+  out <- data.frame(rbind(CI.normal, CI.quant))
+  colnames(out) <- c('CI.lo', 'CI.hi')
+  out
+}
+
+est <- c()
+
+# CI for SS assuming a normal dist & then using quantiles
+create.CI(pt= est$Psi_hat_ss, boot = estimates[,"SimpSubs"])
+
+# CI for IPTW assuming normal & also using quantiles
+create.CI(pt = est$Psi_hat_siptw, boot = estimates[,"IPTW"])
+
+# CI for TMLE assuming normal & also using quantiles
+create.CI(pt = est$Psi_hat_tmle, boot = estimates[,"TMLE"])
+```
