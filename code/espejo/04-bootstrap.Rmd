@@ -5,38 +5,29 @@ output: html_document
 
 ```{r, message=FALSE, warning=FALSE}
 library(readr)
-boot_1 <- read_csv("../../data/boot-1.csv")[,-1]
-boot_2 <- read_csv("../../data/boot-2.csv")[,-1]
-boot_3 <- read_csv("../../data/boot-3.csv")[,-1]
-boot_4 <- read_csv("../../data/boot-4.csv")[,-1]
-boot_5 <- read_csv("../../data/boot-5.csv")[,-1]
-```
-
-```{r}
-boots <- rbind(boot_1, boot_2, boot_3, boot_4, boot_5)
-boots <- boots[-which(duplicated(boots)),]
+boots     <- read_csv("../../data/boot.csv")[,-1]
 estimates <- boots
+summary(estimates)
 ```
 
 
+```{r}
+library(ggplot2)
+ggplot(estimates, aes(x=SimpSubs)) + 
+  geom_histogram(binwidth=0.005, col="black", fill="red3") + 
+  xlab("Simple Substitution") +
+  theme_minimal()
+```
 
 ```{r}
-# explore the bootstrapped point estimates
-summary(estimates)
-
-estimates_2 <- data.frame(estimates)
-
-library(ggplot2)
-ggplot(estimates_2, aes(x=SimpSubs)) + 
-  geom_histogram(binwidth=0.001, col="black", fill="cyan3") +
+ggplot(estimates, aes(x=IPTW)) + 
+  geom_histogram(binwidth=0.005, col="black", fill="red3") +
   theme_minimal()
+```
 
-ggplot(estimates_2, aes(x=IPTW)) + 
-  geom_histogram(binwidth=0.001, col="black", fill="cyan3") +
-  theme_minimal()
-
-ggplot(estimates_2, aes(x=TMLE)) + 
-  geom_histogram(binwidth=0.00001, col="black", fill="cyan3") +
+```{r}
+ggplot(estimates, aes(x=TMLE)) + 
+  geom_histogram(binwidth=0.005, col="black", fill="red3") +
   theme_minimal()
 ```
 
@@ -44,22 +35,53 @@ Generate confidence intervals
 ```{r}
 # function to get confidence intervals
 create.CI <- function(pt, boot, alpha = 0.05) {
-  Zquant <- qnorm(alpha/2, lower.tail = FALSE)
-  CI.normal <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
-  CI.quant <- quantile(boot, prob = c(0.025, 0.975))
-  out <- data.frame(rbind(CI.normal, CI.quant))
+  Zquant        <- qnorm(alpha/2, lower.tail = FALSE)
+  CI.normal     <- c(pt - Zquant*sd(boot), pt + Zquant*sd(boot))
+  CI.quant      <- quantile(boot, prob = c(0.025, 0.975))
+  out           <- data.frame(rbind(CI.normal, CI.quant))
   colnames(out) <- c('CI.lo', 'CI.hi')
   out
 }
 
-est <- c()
+est <- c(ss    =-0.02453352, 
+         siptw =-0.02830029,
+         tmle  =-0.02691215)
 
 # CI for SS assuming a normal dist & then using quantiles
-create.CI(pt= est$Psi_hat_ss, boot = estimates[,"SimpSubs"])
+ss_df <- create.CI(pt=est[1], boot=unlist(estimates[,"SimpSubs"]))
+ss_df <- cbind(ss_df, method=rep("simple",2))
+ss_df <- cbind(ss_df, est=-0.02453352)
 
 # CI for IPTW assuming normal & also using quantiles
-create.CI(pt = est$Psi_hat_siptw, boot = estimates[,"IPTW"])
+iptw_df <- create.CI(pt=est[2], boot=unlist(estimates[,"IPTW"]))
+iptw_df <- cbind(iptw_df, method=rep("iptw",2))
+iptw_df <- cbind(iptw_df, est=-0.02830029)
 
 # CI for TMLE assuming normal & also using quantiles
-create.CI(pt = est$Psi_hat_tmle, boot = estimates[,"TMLE"])
+tmle_df <- create.CI(pt=est[3], boot=unlist(estimates[,"TMLE"]))
+tmle_df <- cbind(tmle_df, method=rep("tmle",2))
+tmle_df <- cbind(tmle_df, est=-0.02691215)
+```
+
+
+```{r}
+ci_values <- data.frame(rbind(ss_df, iptw_df, tmle_df))
+ci_values <- cbind(ci_values, ci_type=gsub("[0-9]", "", row.names(ci_values)))
+row.names(ci_values) <- 1:nrow(ci_values)
+
+# library(reshape2)
+# ci_values <- melt(ci_values, id.vars=c("method", "ci_type"))
+ci_values <- ci_values %>% select(method, ci_type, CI.lo, est, CI.hi)
+ci_values
+```
+
+```{r}
+ggplot(data=ci_values, aes(x=method, y=est, col=ci_type)) + 
+  geom_segment(aes(x=method, xend=method, y=CI.lo, yend=CI.hi), alpha=0.5, lwd=4) +
+  geom_hline(aes(yintercept=0), lwd=2, col="black", alpha=0.75) +
+  labs(y = "Estimate with 95% CI") +
+  theme_minimal() +
+  scale_color_manual(values=c("black", "red")) +
+  geom_point(col="black", size=3, alpha=0.7) +
+  ggtitle("Confidence Intervals Compared")
 ```

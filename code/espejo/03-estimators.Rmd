@@ -89,7 +89,7 @@ psi.p0*100
 ## IPTW.
 ```{r}
 library(nnet)
-gAW_reg  <- multinom(star_intervention~neighborhood+american+review_count+age, data=las_vegas)
+gAW_reg  <- multinom(star_intervention~chain+american+review_binary+age_binary, data=las_vegas)
 gAW_pred <- predict(gAW_reg, type="probs")
 
 gAW <- as.numeric(gAW_pred)

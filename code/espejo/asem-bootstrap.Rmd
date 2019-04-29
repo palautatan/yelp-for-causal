@@ -34,9 +34,7 @@ las_vegas <- las_vegas %>%
     review_binary = as.numeric(review_binary)
   )
 
-cov_int_df <- las_vegas %>% 
-  select(american, chain, age_binary, review_binary, star_intervention) %>%
-  as.data.frame
+
 
 ```
  
@@ -46,12 +44,17 @@ library(SuperLearner)
 library(glmnet)
 library(rpart)
 library(ranger)
+library(ltmle)
 
 # define our SL library
 sl_lib <- c("SL.glm", "SL.rpart", "SL.glmnet", "SL.mean", "SL.ranger")
 
 run.tmle <- function(ObsData, SL.library) {
 
+  cov_int_df <- ObsData %>% 
+  select(american, chain, age_binary, review_binary, star_intervention) %>%
+  as.data.frame
+  
   # estimate qbar_0(A, W)
   qbar_sl <- SuperLearner(
     Y = ObsData$open_2019,
@@ -101,7 +104,7 @@ run.tmle <- function(ObsData, SL.library) {
   
     
   # prep the TMLE section
-  obs_df <- las_vegas %>% 
+  obs_df <- ObsData %>% 
     select(american, chain, age_binary, review_binary,
          star_intervention, open_2019) %>%
     as.data.frame
@@ -117,9 +120,9 @@ run.tmle <- function(ObsData, SL.library) {
     
     
   # store the three estimates
-  estimates <- data.frame(cbind(Psi_hat_ss = Psi_hat_ss,
+  estimates <- data.frame(cbind(Psi_hat_ss    = Psi_hat_ss,
                                 Psi_hat_siptw = Psi_hat_siptw,
-                                Psi_hat_tmle = Psi_hat_tmle))
+                                Psi_hat_tmle  = Psi_hat_tmle))
   
   list(estimates = estimates)
 }
@@ -127,13 +130,13 @@ run.tmle <- function(ObsData, SL.library) {
 # run the function on the original las_vegas data
 out <- run.tmle(ObsData = las_vegas, SL.library = sl_lib)
 est <- out$estimates
-est*100
+est
 ```
 
 Bootstrap the data
 ```{r, warning = FALSE}
 # number of bootstrap samples
-B <- 100
+B <- 500
 # B <- 5 # while writing code to save time
 n <- 3644
 
@@ -153,13 +156,16 @@ for (b in 1:B) {
 }
  
 colnames(estimates) <- c("SimpSubs", "IPTW", "TMLE")
+write.csv(estimates, "../../data/bootstrap-samples.csv")
 ```
 
 Graph the bootstrap distributions
 ```{r}
 # explore the bootstrapped point estimates
 summary(estimates)
+```
 
+```{r}
 # histograms of data
 
 # for simple sub
@@ -174,7 +180,7 @@ hist(estimates[,3], main = "Histogram of bootstrapped point estimates from the T
 
 ```{r}
 # head(estimates)
-# write.csv(estimates, "../../data/boot-4.csv")
+# write.csv(estimates, "../../data/boot.csv")
 ```
 
 Generate confidence intervals
