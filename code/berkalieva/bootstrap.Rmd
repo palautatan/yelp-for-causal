@@ -39,7 +39,7 @@ cov_int_df <- las_vegas %>%
   as.data.frame
 
 ```
- 
+
 Create a function to find all three estimates through SuperLearner.
 ```{r, warning=FALSE}
 library(SuperLearner)
