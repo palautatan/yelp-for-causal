@@ -16,11 +16,11 @@ This is our team:
 ## Code
 Our code has not been cleaned up for publish. Enjoy at your own risk of not enjoying what you see.  
 
-01. Yelp data <a href="code/espejo/01-data.html">cleaning</a> and <a href="code/espejo/02-visuals.html">visualization</a>
+01. Yelp data <a href="code/espejo/01-data.html">cleaning</a> and <a href="code/espejo/02-visuals.nb.html">visualization</a>
 02. <a href="code/espejo/02-visuals.html">Initial visualization</a>  
 03. <a href="code/espejo/03-estimators.html">Estimation</a>  
 04. <a href="code/boileau/03-estimators.html">SuperLearner/TMLE Estimation</a>  
-05. Bootstrap CI's <a href="code/espejo/04-bootstrap.Rmd">here</a> and <a href="code/berkalieva/bootstrap.Rmd">here</a>
+05. Bootstrap CI's <a href="code/espejo/04-bootstrap.nb.html">here</a> and <a href="code/berkalieva/bootstrap.nb.html">here</a>
 
 ## Our results
 We made some negligent assumptions in order to get our problem into the causal framework. We have since learned that some of this assumptions we could have relaxed. I don't think we'll ever be returning to this project, but if you'd like to use the data we have, can you give us a little cite? We didn't create it but we put it together (with lots of effort!) in this project.

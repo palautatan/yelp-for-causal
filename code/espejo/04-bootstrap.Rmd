@@ -1,6 +1,6 @@
 ---
 title: "Bootstrap"
-output: html_document
+output: html_notebook
 ---
 
 ```{r, message=FALSE, warning=FALSE}
