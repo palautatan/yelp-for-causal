@@ -16,7 +16,7 @@ This is our team:
 ## Code
 Our code has not been cleaned up for publish. Enjoy at your own risk of not enjoying what you see.  
 
-01. Yelp data <a href="code/espejo/01-data.html">cleaning</a> and <a href="code/espejo/02-visuals.nb.html">visualization</a>
+01. Yelp data <a href="code/espejo/01-data.html">cleaning</a> and <a href="code/espejo/02-visuals.html">visualization</a>
 02. <a href="code/espejo/02-visuals.html">Initial visualization</a>  
 03. <a href="code/espejo/03-estimators.html">Estimation</a>  
 04. <a href="code/boileau/03-estimators.html">SuperLearner/TMLE Estimation</a>  
